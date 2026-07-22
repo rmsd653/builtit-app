@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\User;
+use App\Enums\SystemRole;
+use App\Enums\EmployeeStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -24,8 +26,12 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $name = "$firstName $lastName";
+        
         return [
-            'name' => fake()->name(),
+            'name' => $name,
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
@@ -33,6 +39,13 @@ class UserFactory extends Factory
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
+            'system_role' => SystemRole::Employee,
+            'display_role' => fake()->jobTitle(),
+            'manager_id' => null,
+            'initials' => strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1)),
+            'avatar_url' => null,
+            'status' => EmployeeStatus::Available,
+            'status_details' => null,
         ];
     }
 
@@ -55,6 +68,43 @@ class UserFactory extends Factory
             'two_factor_secret' => encrypt('secret'),
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'system_role' => SystemRole::Admin,
+            'display_role' => 'System Administrator',
+        ]);
+    }
+
+    public function manager(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'system_role' => SystemRole::Manager,
+        ]);
+    }
+
+    public function employee(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'system_role' => SystemRole::Employee,
+        ]);
+    }
+
+    public function receptionist(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'system_role' => SystemRole::Receptionist,
+            'display_role' => 'Front Desk Receptionist',
+        ]);
+    }
+
+    public function withManager(User $manager): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'manager_id' => $manager->id,
         ]);
     }
 }
